@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=1045">
     <title>Truchet Play</title>
     <style>
         html, body {
@@ -99,19 +100,21 @@
     </style>
 </head>
 <body>
-    <div style="display: flex; flex-direction: row;">
-        <div id="truchet-tile-workspace"></div>
-        <div>
-            <div id="visualizer-workspace"></div>
-            <div id="visualizer-toolbar">
-                <button id="clipboard-button">Copy to clipboard</button>
+    <div style="margin: 10px;">
+        <div style="display: flex; flex-direction: row;">
+            <div id="truchet-tile-workspace"></div>
+            <div>
+                <div id="visualizer-workspace"></div>
+                <div id="visualizer-toolbar">
+                    <button id="clipboard-button">Copy to clipboard</button>
+                </div>
             </div>
         </div>
-    </div>
-    <div id="pattern-workspace">
-        <label for="patterns-dropdown">Predefined pattern</label>
-        <select id="patterns-dropdown"></select>
-        <button id="pattern-button">Apply</button>
+        <div id="pattern-workspace">
+            <label for="patterns-dropdown">Predefined pattern</label>
+            <select id="patterns-dropdown"></select>
+            <button id="pattern-button">Apply</button>
+        </div>
     </div>
     <script type="text/javascript">
         class TruchetTile {
