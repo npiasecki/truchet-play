@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Truchet Play</title>
+    <style>
+        body {
+            background-color: gray;
+            font-family: sans-serif;
+            margin: 25px;
+        }
+
+        .truchet-tile {
+            background-color: white;
+            height: 50px;
+            width: 50px;
+            position: relative;
+            transition: rotate 2s;
+        }
+
+        .truchet-tile::after {
+            content: ' ';
+            width: 0;
+            height: 0;
+            position: absolute;
+            border-style: solid;
+            border-width: 50px 0 0 50px;
+            border-color: transparent transparent transparent black;
+            transform: rotate(0deg);
+        }
+
+        .visualizer {
+            box-sizing: border-box;
+            background-color: white;
+            border: 10px solid gray;
+            cursor: pointer;
+            height: 50px;
+            font-size: 14px;
+            font-weight: bold;
+            line-height: 30px;
+            text-align: center;
+            width: 50px;
+        }
+
+        .pattern-member {
+            background-color: lightblue;
+        }
+
+        #truchet-tile-workspace,
+        #visualizer-workspace {
+            display: grid;
+            grid-template-columns: repeat(10, 50px);
+            grid-template-rows: repeat(10, 50px);
+            grid-column-gap: 0;
+            grid-row-gap: 0;
+        }
+
+        #pattern-workspace {
+            margin-top: 25px;
+        }
+
+        #visualizer-workspace {
+            margin-left: 25px;
+        }
+
+        .rotate-0 {
+            rotate: 0deg;
+        }
+
+        .rotate-90 {
+            rotate: 90deg;
+        }
+
+        .rotate-180 {
+            rotate: 180deg;
+        }
+
+        .rotate-270 {
+            rotate: 270deg;
+        }
+    </style>
+</head>
+<body>
+    <div style="display: flex; flex-direction: row;">
+        <div id="truchet-tile-workspace"></div>
+        <div id="visualizer-workspace"></div>
+    </div>
+    <div id="pattern-workspace">
+        <label for="patterns-dropdown">Predefined pattern</label>
+        <select id="patterns-dropdown"></select>
+        <button id="pattern-button">Apply</button>
+    </div>
+    <script type="text/javascript">
+        class TruchetTile {
+            constructor(tileElement, visualizerElement, x, y) {
+                this.rotationClassPrefix = 'rotate-';
+
+                this.tileElement = tileElement;
+                this.tileElement.addEventListener('click', () => this.whenTileElementClicked());
+                this.tileElement.setAttribute('title', `(${x},${y})`);
+
+                this.visualizerElement = visualizerElement;
+                this.visualizerElement.innerText = 0;
+                this.visualizerElement.setAttribute('title', `(${x},${y})`);
+
+                this.x = x;
+                this.y = y;
+            }
+
+            getRotation() {
+                const currentRotation = this.tileElement.classList.values().find(x => x.startsWith(this.rotationClassPrefix));
+                return currentRotation ? parseInt(currentRotation.substring(this.rotationClassPrefix.length)) : 0;
+            }
+
+            whenTileElementClicked() {
+                const rotation = this.getRotation();
+                this.setRotation((rotation + 90) % 360);
+            }
+
+            setRotation(rotation) {
+                const newRotationClass = this.rotationClassPrefix + rotation;
+                const currentRotation = this.tileElement.classList.values().find(x => x.startsWith(this.rotationClassPrefix));
+                if (currentRotation) {
+                    this.tileElement.classList.replace(currentRotation, newRotationClass);
+                } else {
+                    this.tileElement.classList.add(newRotationClass);
+                }
+
+                this.visualizerElement.innerText = rotation;
+            }
+
+            isPatternMember() {
+                return this.visualizerElement.classList.contains('pattern-member');
+            }
+
+            setPatternMember(isPatternMember) {
+                if (isPatternMember) {
+                    this.visualizerElement.classList.add('pattern-member');
+                } else {
+                    this.visualizerElement.classList.remove('pattern-member');
+                }
+            }
+        }
+
+        class PatternTool {
+            constructor(truchetTiles) {
+                this.truchetTiles = truchetTiles;
+
+                for (const truchetTile of this.truchetTiles) {
+                    truchetTile.tileElement.addEventListener('click', () => this.clearPattern());
+                    truchetTile.visualizerElement.addEventListener('click', () => this.createPattern(truchetTile));
+                }
+            }
+
+            applyPattern(pattern) {
+                const columns = pattern[0].length;
+                const rows = pattern.length;
+
+                for (const truchetTile of this.truchetTiles) {
+                    const patternX = truchetTile.x % columns;
+                    const patternY = truchetTile.y % columns;
+                    const rotation = pattern[patternY][patternX];
+                    truchetTile.setRotation(rotation);
+
+                    truchetTile.setPatternMember(truchetTile.x < columns && truchetTile.y < rows);
+                }
+
+                let searchParams = new URLSearchParams(window.location.hash.slice(1));
+                searchParams.set("pattern", JSON.stringify(pattern));
+                window.location.hash = searchParams.toString();
+            }
+
+            clearPattern() {
+                for (const truchetTile of this.truchetTiles) {
+                    truchetTile.setPatternMember(false);
+                }
+            }
+
+            createPattern(targetTile) {
+                this.clearPattern();
+
+                for (const truchetTile of this.truchetTiles) {
+                    truchetTile.setPatternMember(truchetTile.x <= targetTile.x && truchetTile.y <= targetTile.y);
+                }
+
+                const pattern = Array.from({length: targetTile.y + 1}, () => new Array(targetTile.x + 1).fill(0));
+
+                for (const truchetTile of this.truchetTiles) {
+                    if (truchetTile.isPatternMember()) {
+                        pattern[truchetTile.y][truchetTile.x] = truchetTile.getRotation();
+                    }
+                }
+
+                this.applyPattern(pattern);
+            }
+        }
+
+        const truchetTiles = [];
+
+        const truchetTileWorkspaceElement = document.getElementById('truchet-tile-workspace');
+        const visualizerWorkspaceElement = document.getElementById('visualizer-workspace');
+
+        for (let i = 0; i < 100; ++i)
+        {
+            const truchetTileElement = document.createElement('div');
+            truchetTileElement.classList.add('truchet-tile');
+            truchetTileWorkspaceElement.appendChild(truchetTileElement);
+
+            const visualizerElement = document.createElement('div');
+            visualizerElement.classList.add('visualizer');
+            visualizerWorkspaceElement.appendChild(visualizerElement);
+
+            truchetTiles.push(new TruchetTile(truchetTileElement, visualizerElement, i % 10, Math.trunc(i / 10)));
+        }
+
+        const patternTool = new PatternTool(truchetTiles);
+
+        const patterns = [
+            {
+                name: 'charlie brown',
+                cells: [
+                    [90, 180],
+                    [270, 0]
+                ]
+            },
+            {
+                name: 'diamonds',
+                cells: [
+                    [90, 180],
+                    [0, 270]
+                ]
+            },
+            {
+                name: 'hazard',
+                cells: [
+                    [0, 90],
+                    [90, 0]
+                ]
+            }
+        ];
+
+        const patternsDropdown = document.getElementById('patterns-dropdown');
+        for (const pattern of patterns) {
+            const patternOption = document.createElement('option');
+            patternOption.innerText = pattern.name;
+            patternOption.value = JSON.stringify(pattern.cells);
+            patternsDropdown.appendChild(patternOption);
+        }
+
+        document.getElementById('pattern-button').addEventListener('click',
+            () =>{
+                const pattern = JSON.parse(patternsDropdown.options[patternsDropdown.selectedIndex].value);
+                patternTool.applyPattern(pattern);
+            });
+
+        // Apply any incoming pattern
+        const hashParams = new URLSearchParams(window.location.hash.slice(1));
+        const hashPattern = hashParams.get('pattern');
+        if (hashPattern) {
+            patternTool.applyPattern(JSON.parse(hashPattern));
+        }
+    </script>
+</body>
+</html>
