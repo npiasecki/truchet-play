@@ -63,6 +63,14 @@
             margin-left: 25px;
         }
 
+        #visualizer-toolbar {
+            margin-top: 25px;
+        }
+
+        #visualizer-toolbar button {
+            margin: 0 auto;
+        }
+
         .rotate-0 {
             rotate: 0deg;
         }
@@ -83,7 +91,12 @@
 <body>
     <div style="display: flex; flex-direction: row;">
         <div id="truchet-tile-workspace"></div>
-        <div id="visualizer-workspace"></div>
+        <div>
+            <div id="visualizer-workspace"></div>
+            <div id="visualizer-toolbar">
+                <button id="clipboard-button">Copy to clipboard</button>
+            </div>
+        </div>
     </div>
     <div id="pattern-workspace">
         <label for="patterns-dropdown">Predefined pattern</label>
@@ -143,13 +156,17 @@
         }
 
         class PatternTool {
-            constructor(truchetTiles) {
+            constructor(truchetTiles, clipboardButton) {
                 this.truchetTiles = truchetTiles;
 
                 for (const truchetTile of this.truchetTiles) {
                     truchetTile.tileElement.addEventListener('click', () => this.clearPattern());
                     truchetTile.visualizerElement.addEventListener('click', () => this.createPattern(truchetTile));
                 }
+
+                this.clipboardButton = clipboardButton;
+                this.clipboardButton.addEventListener('click', () => navigator.clipboard.writeText(window.location.href));
+                this.clipboardButton.style.display = 'none';
             }
 
             applyPattern(pattern) {
@@ -168,12 +185,16 @@
                 let searchParams = new URLSearchParams(window.location.hash.slice(1));
                 searchParams.set("pattern", JSON.stringify(pattern));
                 window.location.hash = searchParams.toString();
+
+                this.clipboardButton.style.display = 'block';
             }
 
             clearPattern() {
                 for (const truchetTile of this.truchetTiles) {
                     truchetTile.setPatternMember(false);
                 }
+
+                this.clipboardButton.style.display = 'none';
             }
 
             createPattern(targetTile) {
@@ -213,7 +234,7 @@
             truchetTiles.push(new TruchetTile(truchetTileElement, visualizerElement, i % 10, Math.trunc(i / 10)));
         }
 
-        const patternTool = new PatternTool(truchetTiles);
+        const patternTool = new PatternTool(truchetTiles, document.getElementById('clipboard-button'));
 
         const patterns = [
             {
