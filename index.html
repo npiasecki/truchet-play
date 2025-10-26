@@ -188,7 +188,7 @@
 
                 for (const truchetTile of this.truchetTiles) {
                     const patternX = truchetTile.x % columns;
-                    const patternY = truchetTile.y % columns;
+                    const patternY = truchetTile.y % rows;
                     const rotation = pattern[patternY][patternX];
                     truchetTile.setRotation(rotation);
 
